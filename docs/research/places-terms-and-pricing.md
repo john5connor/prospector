@@ -38,3 +38,14 @@ Billed at the highest SKU among requested fields.
 - Quotas and budgets do NOT hard-cap spend; budgets only alert. A low daily quota is the real brake.
 - Restrict the key: API restriction to Places API (New) plus IP restriction (server-side). Keep it out of Git.
 - You are financially responsible for abuse of unrestricted keys.
+
+## Cross-check (Codex, board message #7) and MVP decision
+Codex reached the same conclusions from the Terms (s3.2.3(a)-(d), Service Specific Terms A.3 / B.14.3) and added:
+durable Google-derived lead storage/export is the principal blocker under standard terms; get written licensing
+clarification before relying on it; do not persist full Places responses in n8n execution logs, exports or backups;
+Text Search is ranked, not an exhaustive census; a per-day Places quota may not exist (only per-minute confirmed),
+so also enforce application-side request counters.
+
+**Owner decision (2026-11-07):** MVP stores the fields in `prospects` anyway; accepted risk, revisit before scaling.
+Mitigations to keep: small volume, no export/bulk-sharing of stored Google fields, short n8n execution-data retention,
+and a clear pivot path (store only `place_id` + own data).
