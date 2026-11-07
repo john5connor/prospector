@@ -15,6 +15,19 @@ log every run. Real Google Places integration, scheduling, qualification, audits
 - `mockScenario` in the "Discovery Parameters" node (`normal` | `all_invalid` | `empty`) is a test knob for the
   mock source and goes away when the real Places request replaces it. Keep it set to `normal` when committing.
 
+## Places source (built, untested against the real API)
+- `source` in "Discovery Parameters" selects `mock` (default) or `places`. A "Source Router" IF node branches.
+- Places path: HTTP Request POST `places:searchText`, fixed field mask (id, displayName, formattedAddress, primaryType,
+  nationalPhoneNumber, websiteUri, nextPageToken; Enterprise tier), `pageSize` 20, auth via the "Google Places API Key"
+  header credential. Never use a wildcard field mask.
+- Spend bound: pagination is capped by `maxPages` with a hard ceiling of 3 in the node expression (Text Search returns
+  at most 60 results anyway). `requests_made` is logged in `discovery_runs` for every run.
+- Tested with `tests/stub_places_server.py` (no paid calls): 3-page pagination, endless-token cap (10 requested,
+  3 made), empty response (`no_results`, 1 request). The real API's response shapes are still unverified.
+- Credentials: `scripts/sync-n8n-credentials.sh` builds them from `.env`. Until `GOOGLE_PLACES_API_KEY` is set the
+  Places credential holds a placeholder. Do not set `source=places` before the key, quotas and restrictions exist.
+- Not built yet: a monthly request budget check that aborts a run when exceeded (recommended before scheduling).
+
 ## Error handling (planned, not built)
 Today a failing node fails the execution, which is visible in n8n's execution list but alerts nobody.
 The intended design is "if an error occurs at X, forward it to Y", where Y is an error notification service.

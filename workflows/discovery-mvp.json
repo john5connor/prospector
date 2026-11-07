@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-11-07T20:17:22.048Z",
+    "updatedAt": "2026-11-07T20:36:12.309Z",
     "createdAt": "2026-11-07T19:24:24.056Z",
     "id": "39bRTVc0oQQDaNyA",
     "name": "Discovery MVP (mock)",
@@ -54,6 +54,24 @@
                 "name": "mockScenario",
                 "value": "normal",
                 "type": "string"
+              },
+              {
+                "id": "src",
+                "name": "source",
+                "value": "mock",
+                "type": "string"
+              },
+              {
+                "id": "mp",
+                "name": "maxPages",
+                "value": 3,
+                "type": "number"
+              },
+              {
+                "id": "ps",
+                "name": "pageSize",
+                "value": 20,
+                "type": "number"
               }
             ]
           }
@@ -200,9 +218,9 @@
       {
         "parameters": {
           "operation": "executeQuery",
-          "query": "WITH input AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(place_id text, name text, category text, address text, website_url text, phone text, source_query text)\n  WHERE COALESCE(place_id,'') <> '' AND COALESCE(name,'') <> ''\n),\nins AS (\n  INSERT INTO prospects (place_id, name, category, address, website_url, phone, source_query)\n  SELECT place_id, name, NULLIF(category,''), NULLIF(address,''), NULLIF(website_url,''), NULLIF(phone,''), source_query\n  FROM input\n  ON CONFLICT (place_id) DO NOTHING\n  RETURNING place_id\n),\nstats AS (\n  SELECT (SELECT count(*) FROM input)::int AS valid, (SELECT count(*) FROM ins)::int AS inserted\n)\nINSERT INTO discovery_runs (n8n_execution_id, params, fetched, invalid, inserted, duplicates, status)\nSELECT $4::text, $2::jsonb, $3::int, $3::int - valid, inserted, valid - inserted,\n  CASE WHEN $3::int = 0 THEN 'no_results' WHEN valid = 0 THEN 'no_valid_records' ELSE 'ok' END\nFROM stats\nRETURNING id AS run_id, status, fetched, invalid, inserted, duplicates",
+          "query": "WITH input AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(place_id text, name text, category text, address text, website_url text, phone text, source_query text)\n  WHERE COALESCE(place_id,'') <> '' AND COALESCE(name,'') <> ''\n),\nins AS (\n  INSERT INTO prospects (place_id, name, category, address, website_url, phone, source_query)\n  SELECT place_id, name, NULLIF(category,''), NULLIF(address,''), NULLIF(website_url,''), NULLIF(phone,''), source_query\n  FROM input\n  ON CONFLICT (place_id) DO NOTHING\n  RETURNING place_id\n),\nstats AS (\n  SELECT (SELECT count(*) FROM input)::int AS valid, (SELECT count(*) FROM ins)::int AS inserted\n)\nINSERT INTO discovery_runs (n8n_execution_id, params, fetched, invalid, inserted, duplicates, status, requests_made)\nSELECT $4::text, $2::jsonb, $3::int, $3::int - valid, inserted, valid - inserted,\n  CASE WHEN $3::int = 0 THEN 'no_results' WHEN valid = 0 THEN 'no_valid_records' ELSE 'ok' END,\n  $5::int\nFROM stats\nRETURNING id AS run_id, status, fetched, invalid, inserted, duplicates, requests_made",
           "options": {
-            "queryReplacement": "={{ [JSON.stringify($json.data ?? []), JSON.stringify($(\"Discovery Parameters\").first().json), $(\"Mock Places Response\").all().filter(i => Object.keys(i.json).length > 0).length, $execution.id] }}"
+            "queryReplacement": "={{ [JSON.stringify($json.data ?? []), JSON.stringify($(\"Discovery Parameters\").first().json), $(\"Normalize Prospect Data\").all().filter(i => i.json.place_id || i.json.name || i.json.address).length, $execution.id, $(\"Places Search\").isExecuted ? $(\"Places Search\").all().length : 0] }}"
           }
         },
         "id": "8ceec40a-5a74-4ee9-b826-6c6087dcde37",
@@ -259,6 +277,12 @@
                 "name": "duplicates",
                 "value": "={{ $json.duplicates }}",
                 "type": "number"
+              },
+              {
+                "id": "s6",
+                "name": "requests_made",
+                "value": "={{ $json.requests_made }}",
+                "type": "number"
               }
             ]
           },
@@ -272,6 +296,134 @@
           1568,
           0
         ]
+      },
+      {
+        "id": "bb7aa14a-c1cb-4f9b-bb41-b67bc65cb093",
+        "name": "Source Router",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.4,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "combinator": "and",
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "r1",
+                "leftValue": "={{ $json.source }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                },
+                "rightValue": "places"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "459ab497-79e8-4233-802c-56393870c7f5",
+        "name": "Places Search",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          660,
+          -120
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "https://places.googleapis.com/v1/places:searchText",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendHeaders": true,
+          "specifyHeaders": "keypair",
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "X-Goog-FieldMask",
+                "value": "places.id,places.displayName,places.formattedAddress,places.primaryType,places.nationalPhoneNumber,places.websiteUri,nextPageToken"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "json",
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ textQuery: $json.textQuery, pageSize: $json.pageSize }) }}",
+          "options": {
+            "pagination": {
+              "pagination": {
+                "paginationMode": "updateAParameterInEachRequest",
+                "parameters": {
+                  "parameters": [
+                    {
+                      "type": "body",
+                      "name": "pageToken",
+                      "value": "={{ $response.body.nextPageToken }}"
+                    }
+                  ]
+                },
+                "paginationCompleteWhen": "other",
+                "completeExpression": "={{ !$response.body.nextPageToken }}",
+                "limitPagesFetched": true,
+                "maxRequests": "={{ Math.min($('Discovery Parameters').first().json.maxPages, 3) }}",
+                "requestInterval": 1000
+              }
+            }
+          }
+        },
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "placesApiKey01",
+            "name": "Google Places API Key"
+          }
+        }
+      },
+      {
+        "id": "0dc3ce1e-1595-4037-b6e8-f8e5d947ee11",
+        "name": "Ensure Places Array",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          880,
+          -120
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "pl",
+                "name": "places",
+                "value": "={{ $json.places ?? [] }}",
+                "type": "array"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "9dccff8a-9660-47b5-89a2-b3b9d0bef9b6",
+        "name": "Split Places",
+        "type": "n8n-nodes-base.splitOut",
+        "typeVersion": 1.1,
+        "position": [
+          1100,
+          -120
+        ],
+        "parameters": {
+          "fieldToSplitOut": "places",
+          "include": "noOtherFields"
+        },
+        "alwaysOutputData": true
       }
     ],
     "connections": {
@@ -280,17 +432,6 @@
           [
             {
               "node": "Discovery Parameters",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Discovery Parameters": {
-        "main": [
-          [
-            {
-              "node": "Mock Places Response",
               "type": "main",
               "index": 0
             }
@@ -351,6 +492,68 @@
             }
           ]
         ]
+      },
+      "Discovery Parameters": {
+        "main": [
+          [
+            {
+              "node": "Source Router",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Source Router": {
+        "main": [
+          [
+            {
+              "node": "Places Search",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Mock Places Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Places Search": {
+        "main": [
+          [
+            {
+              "node": "Ensure Places Array",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ensure Places Array": {
+        "main": [
+          [
+            {
+              "node": "Split Places",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Split Places": {
+        "main": [
+          [
+            {
+              "node": "Normalize Prospect Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "settings": {
@@ -365,9 +568,9 @@
     },
     "nodeGroups": [],
     "pinData": {},
-    "versionId": "9c392bf1-a253-4cf7-ade4-a0c511f0c8fc",
+    "versionId": "d6f0165e-e367-4b00-b878-4ad211003980",
     "activeVersionId": null,
-    "versionCounter": 6,
+    "versionCounter": 11,
     "triggerCount": 0,
     "sourceWorkflowId": null,
     "tags": [],
@@ -392,8 +595,8 @@
       }
     ],
     "versionMetadata": {
-      "name": "Reset mockScenario to normal",
-      "description": "Updated nodes: Discovery Parameters"
+      "name": "Restore real URL and defaults (source=mock)",
+      "description": "Updated nodes: Discovery Parameters, Places Search"
     }
   }
 ]
