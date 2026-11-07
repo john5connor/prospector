@@ -1,0 +1,108 @@
+[
+  {
+    "updatedAt": "2026-11-07T19:09:52.880Z",
+    "createdAt": "2026-11-07T19:09:52.880Z",
+    "id": "T25BXY0vOMuLTJKl",
+    "name": "MCP Smoke Test",
+    "description": "Manual trigger into a Set node; verifies Claude Code to n8n MCP wiring.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "c6b17629-a08c-4289-a01a-ec3622a2732d",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "d554e6d1-7f54-4e18-899b-f38c897f1b88",
+        "name": "Set Hello",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "msg",
+                "name": "message",
+                "value": "MCP wiring test",
+                "type": "string"
+              },
+              {
+                "id": "ts",
+                "name": "ranAt",
+                "value": "={{ $now.toISO() }}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Set Hello",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "dfe9e84f-09af-450c-9bed-3ac1e093ef90",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-11-07T19:09:52.880Z",
+        "createdAt": "2026-11-07T19:09:52.880Z",
+        "role": "workflow:owner",
+        "workflowId": "T25BXY0vOMuLTJKl",
+        "projectId": "iepdvSTUwaW3eSoy",
+        "project": {
+          "updatedAt": "2026-11-07T18:58:01.911Z",
+          "createdAt": "2026-11-07T18:49:56.121Z",
+          "id": "iepdvSTUwaW3eSoy",
+          "name": "John McCarty <mccartyccm120@gmail.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "82b61b08-7a3e-4c47-a306-8e5569d6a30b"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Initial smoke test",
+      "description": "Created with 2 nodes: Manual Trigger, Set Hello"
+    }
+  }
+]
