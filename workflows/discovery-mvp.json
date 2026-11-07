@@ -1,6 +1,6 @@
 [
   {
-    "updatedAt": "2026-11-07T19:24:24.056Z",
+    "updatedAt": "2026-11-07T20:17:22.048Z",
     "createdAt": "2026-11-07T19:24:24.056Z",
     "id": "39bRTVc0oQQDaNyA",
     "name": "Discovery MVP (mock)",
@@ -9,6 +9,7 @@
     "isArchived": false,
     "nodes": [
       {
+        "parameters": {},
         "id": "0a85a48a-8989-4945-9bb7-481a2c126c15",
         "name": "Manual Trigger",
         "type": "n8n-nodes-base.manualTrigger",
@@ -16,18 +17,9 @@
         "position": [
           0,
           0
-        ],
-        "parameters": {}
+        ]
       },
       {
-        "id": "516991a5-6a3d-46e8-b134-adbd9fd19821",
-        "name": "Discovery Parameters",
-        "type": "n8n-nodes-base.set",
-        "typeVersion": 3.4,
-        "position": [
-          224,
-          0
-        ],
         "parameters": {
           "mode": "manual",
           "includeOtherFields": false,
@@ -56,12 +48,29 @@
                 "name": "maxResults",
                 "value": 20,
                 "type": "number"
+              },
+              {
+                "id": "scn",
+                "name": "mockScenario",
+                "value": "normal",
+                "type": "string"
               }
             ]
           }
-        }
+        },
+        "id": "516991a5-6a3d-46e8-b134-adbd9fd19821",
+        "name": "Discovery Parameters",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          0
+        ]
       },
       {
+        "parameters": {
+          "jsCode": "// MOCK of Google Places API (New) Text Search results. Replace with an HTTP Request node later.\n// mockScenario: normal | all_invalid | empty  (test knob; disappears with the mock)\nconst p = $('Discovery Parameters').first().json;\nconst places = [\n  { id: 'ChIJmock0001', displayName: { text: 'Motor City Heating & Cooling' }, formattedAddress: '123 Main St, Royal Oak, MI 48067, USA', nationalPhoneNumber: '(248) 555-0101', websiteUri: 'https://example.com/motorcity', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0002', displayName: { text: 'Pontiac Climate Control' }, formattedAddress: '45 Saginaw St, Pontiac, MI 48342, USA', nationalPhoneNumber: '(248) 555-0102', websiteUri: 'https://example.com/pontiac', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0003', displayName: { text: 'Troy Comfort Systems' }, formattedAddress: '900 Big Beaver Rd, Troy, MI 48084, USA', nationalPhoneNumber: '(248) 555-0103', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0004', displayName: { text: 'Novi Furnace Pros' }, formattedAddress: '27000 Novi Rd, Novi, MI 48377, USA', websiteUri: 'https://example.com/novi', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0005', displayName: { text: 'Farmington Air Experts' }, formattedAddress: '33000 Grand River Ave, Farmington, MI 48336, USA', nationalPhoneNumber: '(248) 555-0105', websiteUri: 'https://example.com/farmington', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0001', displayName: { text: 'Motor City Heating & Cooling' }, formattedAddress: '123 Main St, Royal Oak, MI 48067, USA', nationalPhoneNumber: '(248) 555-0101', websiteUri: 'https://example.com/motorcity', primaryType: 'hvac_contractor' },\n  { displayName: { text: 'Record Missing Place ID' }, formattedAddress: '1 Nowhere Ln, Auburn Hills, MI, USA' },\n  { id: 'ChIJmock0008', displayName: { text: '' }, formattedAddress: '2 Blank Name Ct, Southfield, MI, USA' }\n];\nlet out = places;\nif (p.mockScenario === 'empty') out = [];\nif (p.mockScenario === 'all_invalid') out = places.slice(6);\nreturn out.slice(0, p.maxResults).map(pl => ({ json: pl }));"
+        },
         "id": "00672232-aaf2-4b70-995a-582f00c553fa",
         "name": "Mock Places Response",
         "type": "n8n-nodes-base.code",
@@ -70,24 +79,10 @@
           448,
           0
         ],
-        "parameters": {
-          "mode": "runOnceForAllItems",
-          "language": "javaScript",
-          "jsCode": "// MOCK of Google Places API (New) Text Search results. Replace with an HTTP Request node later.\nconst p = $('Discovery Parameters').first().json;\nconst places = [\n  { id: 'ChIJmock0001', displayName: { text: 'Motor City Heating & Cooling' }, formattedAddress: '123 Main St, Royal Oak, MI 48067, USA', nationalPhoneNumber: '(248) 555-0101', websiteUri: 'https://example.com/motorcity', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0002', displayName: { text: 'Pontiac Climate Control' }, formattedAddress: '45 Saginaw St, Pontiac, MI 48342, USA', nationalPhoneNumber: '(248) 555-0102', websiteUri: 'https://example.com/pontiac', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0003', displayName: { text: 'Troy Comfort Systems' }, formattedAddress: '900 Big Beaver Rd, Troy, MI 48084, USA', nationalPhoneNumber: '(248) 555-0103', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0004', displayName: { text: 'Novi Furnace Pros' }, formattedAddress: '27000 Novi Rd, Novi, MI 48377, USA', websiteUri: 'https://example.com/novi', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0005', displayName: { text: 'Farmington Air Experts' }, formattedAddress: '33000 Grand River Ave, Farmington, MI 48336, USA', nationalPhoneNumber: '(248) 555-0105', websiteUri: 'https://example.com/farmington', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0001', displayName: { text: 'Motor City Heating & Cooling' }, formattedAddress: '123 Main St, Royal Oak, MI 48067, USA', nationalPhoneNumber: '(248) 555-0101', websiteUri: 'https://example.com/motorcity', primaryType: 'hvac_contractor' },\n  { displayName: { text: 'Record Missing Place ID' }, formattedAddress: '1 Nowhere Ln, Auburn Hills, MI, USA' },\n  { id: 'ChIJmock0008', displayName: { text: '' }, formattedAddress: '2 Blank Name Ct, Southfield, MI, USA' }\n];\nreturn places.slice(0, p.maxResults).map(pl => ({ json: pl }));"
-        }
+        "alwaysOutputData": true
       },
       {
-        "id": "31fae9d7-9859-4587-b580-ccebec44ae73",
-        "name": "Normalize Prospect Data",
-        "type": "n8n-nodes-base.set",
-        "typeVersion": 3.4,
-        "position": [
-          672,
-          0
-        ],
         "parameters": {
-          "mode": "manual",
-          "includeOtherFields": false,
           "assignments": {
             "assignments": [
               {
@@ -133,26 +128,26 @@
                 "type": "string"
               }
             ]
-          }
-        }
+          },
+          "options": {}
+        },
+        "id": "31fae9d7-9859-4587-b580-ccebec44ae73",
+        "name": "Normalize Prospect Data",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          672,
+          0
+        ]
       },
       {
-        "id": "b5f8a91f-2058-48fc-9b4d-b1a49bd00e38",
-        "name": "Drop Invalid Records",
-        "type": "n8n-nodes-base.filter",
-        "typeVersion": 2.4,
-        "position": [
-          896,
-          0
-        ],
         "parameters": {
           "conditions": {
-            "combinator": "and",
             "options": {
               "caseSensitive": true,
               "leftValue": "",
               "typeValidation": "strict",
-              "version": 2
+              "version": 4
             },
             "conditions": [
               {
@@ -173,11 +168,26 @@
                 },
                 "rightValue": ""
               }
-            ]
-          }
-        }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "b5f8a91f-2058-48fc-9b4d-b1a49bd00e38",
+        "name": "Drop Invalid Records",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.4,
+        "position": [
+          896,
+          0
+        ],
+        "alwaysOutputData": true
       },
       {
+        "parameters": {
+          "aggregate": "aggregateAllItemData",
+          "options": {}
+        },
         "id": "d993e152-ec0b-4b1a-91a5-fe0e5111b5ac",
         "name": "Batch Valid Records",
         "type": "n8n-nodes-base.aggregate",
@@ -185,14 +195,16 @@
         "position": [
           1120,
           0
-        ],
-        "parameters": {
-          "aggregate": "aggregateAllItemData",
-          "destinationFieldName": "data",
-          "include": "allFields"
-        }
+        ]
       },
       {
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH input AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(place_id text, name text, category text, address text, website_url text, phone text, source_query text)\n  WHERE COALESCE(place_id,'') <> '' AND COALESCE(name,'') <> ''\n),\nins AS (\n  INSERT INTO prospects (place_id, name, category, address, website_url, phone, source_query)\n  SELECT place_id, name, NULLIF(category,''), NULLIF(address,''), NULLIF(website_url,''), NULLIF(phone,''), source_query\n  FROM input\n  ON CONFLICT (place_id) DO NOTHING\n  RETURNING place_id\n),\nstats AS (\n  SELECT (SELECT count(*) FROM input)::int AS valid, (SELECT count(*) FROM ins)::int AS inserted\n)\nINSERT INTO discovery_runs (n8n_execution_id, params, fetched, invalid, inserted, duplicates, status)\nSELECT $4::text, $2::jsonb, $3::int, $3::int - valid, inserted, valid - inserted,\n  CASE WHEN $3::int = 0 THEN 'no_results' WHEN valid = 0 THEN 'no_valid_records' ELSE 'ok' END\nFROM stats\nRETURNING id AS run_id, status, fetched, invalid, inserted, duplicates",
+          "options": {
+            "queryReplacement": "={{ [JSON.stringify($json.data ?? []), JSON.stringify($(\"Discovery Parameters\").first().json), $(\"Mock Places Response\").all().filter(i => Object.keys(i.json).length > 0).length, $execution.id] }}"
+          }
+        },
         "id": "8ceec40a-5a74-4ee9-b826-6c6087dcde37",
         "name": "Persist Prospects",
         "type": "n8n-nodes-base.postgres",
@@ -201,14 +213,6 @@
           1344,
           0
         ],
-        "parameters": {
-          "resource": "database",
-          "operation": "executeQuery",
-          "query": "WITH input AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(place_id text, name text, category text, address text, website_url text, phone text, source_query text)\n),\nins AS (\n  INSERT INTO prospects (place_id, name, category, address, website_url, phone, source_query)\n  SELECT place_id, name, NULLIF(category,''), NULLIF(address,''), NULLIF(website_url,''), NULLIF(phone,''), source_query\n  FROM input\n  ON CONFLICT (place_id) DO NOTHING\n  RETURNING place_id\n),\nstats AS (\n  SELECT (SELECT count(*) FROM input)::int AS valid, (SELECT count(*) FROM ins)::int AS inserted\n)\nINSERT INTO discovery_runs (n8n_execution_id, params, fetched, invalid, inserted, duplicates)\nSELECT $4::text, $2::jsonb, $3::int, $3::int - valid, inserted, valid - inserted FROM stats\nRETURNING id AS run_id, fetched, invalid, inserted, duplicates",
-          "options": {
-            "queryReplacement": "={{ [JSON.stringify($json.data), JSON.stringify($(\"Discovery Parameters\").first().json), $(\"Normalize Prospect Data\").all().length, $execution.id] }}"
-          }
-        },
         "credentials": {
           "postgres": {
             "id": "prospectorPg01",
@@ -217,19 +221,15 @@
         }
       },
       {
-        "id": "094eb14b-793c-49d9-9198-33ad40c2759f",
-        "name": "Execution Summary",
-        "type": "n8n-nodes-base.set",
-        "typeVersion": 3.4,
-        "position": [
-          1568,
-          0
-        ],
         "parameters": {
-          "mode": "manual",
-          "includeOtherFields": false,
           "assignments": {
             "assignments": [
+              {
+                "id": "s0",
+                "name": "status",
+                "value": "={{ $json.status }}",
+                "type": "string"
+              },
               {
                 "id": "s1",
                 "name": "run_id",
@@ -261,8 +261,17 @@
                 "type": "number"
               }
             ]
-          }
-        }
+          },
+          "options": {}
+        },
+        "id": "094eb14b-793c-49d9-9198-33ad40c2759f",
+        "name": "Execution Summary",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1568,
+          0
+        ]
       }
     ],
     "connections": {
@@ -346,7 +355,8 @@
     },
     "settings": {
       "executionOrder": "v1",
-      "availableInMCP": true
+      "availableInMCP": true,
+      "binaryMode": "separate"
     },
     "staticData": null,
     "meta": {
@@ -354,10 +364,10 @@
       "builderVariant": "mcp"
     },
     "nodeGroups": [],
-    "pinData": null,
-    "versionId": "1f0d1bac-dd71-43ac-b7cb-dc21c871e294",
+    "pinData": {},
+    "versionId": "9c392bf1-a253-4cf7-ade4-a0c511f0c8fc",
     "activeVersionId": null,
-    "versionCounter": 1,
+    "versionCounter": 6,
     "triggerCount": 0,
     "sourceWorkflowId": null,
     "tags": [],
@@ -382,8 +392,8 @@
       }
     ],
     "versionMetadata": {
-      "name": "Initial mock discovery",
-      "description": "Created with 8 nodes: Manual Trigger, Discovery Parameters, Mock Places Response, Normalize Prospect Data, Drop Invalid Records and 3 more"
+      "name": "Reset mockScenario to normal",
+      "description": "Updated nodes: Discovery Parameters"
     }
   }
 ]
