@@ -1,0 +1,389 @@
+[
+  {
+    "updatedAt": "2026-11-07T19:24:24.056Z",
+    "createdAt": "2026-11-07T19:24:24.056Z",
+    "id": "39bRTVc0oQQDaNyA",
+    "name": "Discovery MVP (mock)",
+    "description": "Mock Places data to normalize, validate, dedupe on place_id and persist to Postgres, then summarize. Manual trigger only.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "id": "0a85a48a-8989-4945-9bb7-481a2c126c15",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "516991a5-6a3d-46e8-b134-adbd9fd19821",
+        "name": "Discovery Parameters",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "region",
+                "name": "region",
+                "value": "Oakland County, MI",
+                "type": "string"
+              },
+              {
+                "id": "category",
+                "name": "category",
+                "value": "HVAC contractor",
+                "type": "string"
+              },
+              {
+                "id": "tq",
+                "name": "textQuery",
+                "value": "HVAC contractor in Oakland County, MI",
+                "type": "string"
+              },
+              {
+                "id": "max",
+                "name": "maxResults",
+                "value": 20,
+                "type": "number"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "00672232-aaf2-4b70-995a-582f00c553fa",
+        "name": "Mock Places Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "// MOCK of Google Places API (New) Text Search results. Replace with an HTTP Request node later.\nconst p = $('Discovery Parameters').first().json;\nconst places = [\n  { id: 'ChIJmock0001', displayName: { text: 'Motor City Heating & Cooling' }, formattedAddress: '123 Main St, Royal Oak, MI 48067, USA', nationalPhoneNumber: '(248) 555-0101', websiteUri: 'https://example.com/motorcity', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0002', displayName: { text: 'Pontiac Climate Control' }, formattedAddress: '45 Saginaw St, Pontiac, MI 48342, USA', nationalPhoneNumber: '(248) 555-0102', websiteUri: 'https://example.com/pontiac', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0003', displayName: { text: 'Troy Comfort Systems' }, formattedAddress: '900 Big Beaver Rd, Troy, MI 48084, USA', nationalPhoneNumber: '(248) 555-0103', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0004', displayName: { text: 'Novi Furnace Pros' }, formattedAddress: '27000 Novi Rd, Novi, MI 48377, USA', websiteUri: 'https://example.com/novi', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0005', displayName: { text: 'Farmington Air Experts' }, formattedAddress: '33000 Grand River Ave, Farmington, MI 48336, USA', nationalPhoneNumber: '(248) 555-0105', websiteUri: 'https://example.com/farmington', primaryType: 'hvac_contractor' },\n  { id: 'ChIJmock0001', displayName: { text: 'Motor City Heating & Cooling' }, formattedAddress: '123 Main St, Royal Oak, MI 48067, USA', nationalPhoneNumber: '(248) 555-0101', websiteUri: 'https://example.com/motorcity', primaryType: 'hvac_contractor' },\n  { displayName: { text: 'Record Missing Place ID' }, formattedAddress: '1 Nowhere Ln, Auburn Hills, MI, USA' },\n  { id: 'ChIJmock0008', displayName: { text: '' }, formattedAddress: '2 Blank Name Ct, Southfield, MI, USA' }\n];\nreturn places.slice(0, p.maxResults).map(pl => ({ json: pl }));"
+        }
+      },
+      {
+        "id": "31fae9d7-9859-4587-b580-ccebec44ae73",
+        "name": "Normalize Prospect Data",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "n1",
+                "name": "place_id",
+                "value": "={{ $json.id || \"\" }}",
+                "type": "string"
+              },
+              {
+                "id": "n2",
+                "name": "name",
+                "value": "={{ ($json.displayName?.text || \"\").trim() }}",
+                "type": "string"
+              },
+              {
+                "id": "n3",
+                "name": "category",
+                "value": "={{ $json.primaryType || \"\" }}",
+                "type": "string"
+              },
+              {
+                "id": "n4",
+                "name": "address",
+                "value": "={{ $json.formattedAddress || \"\" }}",
+                "type": "string"
+              },
+              {
+                "id": "n5",
+                "name": "website_url",
+                "value": "={{ $json.websiteUri || \"\" }}",
+                "type": "string"
+              },
+              {
+                "id": "n6",
+                "name": "phone",
+                "value": "={{ $json.nationalPhoneNumber || \"\" }}",
+                "type": "string"
+              },
+              {
+                "id": "n7",
+                "name": "source_query",
+                "value": "={{ $(\"Discovery Parameters\").first().json.textQuery }}",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "b5f8a91f-2058-48fc-9b4d-b1a49bd00e38",
+        "name": "Drop Invalid Records",
+        "type": "n8n-nodes-base.filter",
+        "typeVersion": 2.4,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "conditions": {
+            "combinator": "and",
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "c1",
+                "leftValue": "={{ $json.place_id }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                },
+                "rightValue": ""
+              },
+              {
+                "id": "c2",
+                "leftValue": "={{ $json.name }}",
+                "operator": {
+                  "type": "string",
+                  "operation": "notEmpty"
+                },
+                "rightValue": ""
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "d993e152-ec0b-4b1a-91a5-fe0e5111b5ac",
+        "name": "Batch Valid Records",
+        "type": "n8n-nodes-base.aggregate",
+        "typeVersion": 1,
+        "position": [
+          1120,
+          0
+        ],
+        "parameters": {
+          "aggregate": "aggregateAllItemData",
+          "destinationFieldName": "data",
+          "include": "allFields"
+        }
+      },
+      {
+        "id": "8ceec40a-5a74-4ee9-b826-6c6087dcde37",
+        "name": "Persist Prospects",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.8,
+        "position": [
+          1344,
+          0
+        ],
+        "parameters": {
+          "resource": "database",
+          "operation": "executeQuery",
+          "query": "WITH input AS (\n  SELECT * FROM jsonb_to_recordset($1::jsonb)\n    AS x(place_id text, name text, category text, address text, website_url text, phone text, source_query text)\n),\nins AS (\n  INSERT INTO prospects (place_id, name, category, address, website_url, phone, source_query)\n  SELECT place_id, name, NULLIF(category,''), NULLIF(address,''), NULLIF(website_url,''), NULLIF(phone,''), source_query\n  FROM input\n  ON CONFLICT (place_id) DO NOTHING\n  RETURNING place_id\n),\nstats AS (\n  SELECT (SELECT count(*) FROM input)::int AS valid, (SELECT count(*) FROM ins)::int AS inserted\n)\nINSERT INTO discovery_runs (n8n_execution_id, params, fetched, invalid, inserted, duplicates)\nSELECT $4::text, $2::jsonb, $3::int, $3::int - valid, inserted, valid - inserted FROM stats\nRETURNING id AS run_id, fetched, invalid, inserted, duplicates",
+          "options": {
+            "queryReplacement": "={{ [JSON.stringify($json.data), JSON.stringify($(\"Discovery Parameters\").first().json), $(\"Normalize Prospect Data\").all().length, $execution.id] }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "prospectorPg01",
+            "name": "Prospector Postgres"
+          }
+        }
+      },
+      {
+        "id": "094eb14b-793c-49d9-9198-33ad40c2759f",
+        "name": "Execution Summary",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1568,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "s1",
+                "name": "run_id",
+                "value": "={{ $json.run_id }}",
+                "type": "number"
+              },
+              {
+                "id": "s2",
+                "name": "fetched",
+                "value": "={{ $json.fetched }}",
+                "type": "number"
+              },
+              {
+                "id": "s3",
+                "name": "invalid",
+                "value": "={{ $json.invalid }}",
+                "type": "number"
+              },
+              {
+                "id": "s4",
+                "name": "inserted",
+                "value": "={{ $json.inserted }}",
+                "type": "number"
+              },
+              {
+                "id": "s5",
+                "name": "duplicates",
+                "value": "={{ $json.duplicates }}",
+                "type": "number"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Discovery Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Discovery Parameters": {
+        "main": [
+          [
+            {
+              "node": "Mock Places Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mock Places Response": {
+        "main": [
+          [
+            {
+              "node": "Normalize Prospect Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalize Prospect Data": {
+        "main": [
+          [
+            {
+              "node": "Drop Invalid Records",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Drop Invalid Records": {
+        "main": [
+          [
+            {
+              "node": "Batch Valid Records",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Batch Valid Records": {
+        "main": [
+          [
+            {
+              "node": "Persist Prospects",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Persist Prospects": {
+        "main": [
+          [
+            {
+              "node": "Execution Summary",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true
+    },
+    "staticData": null,
+    "meta": {
+      "aiBuilderAssisted": true,
+      "builderVariant": "mcp"
+    },
+    "nodeGroups": [],
+    "pinData": null,
+    "versionId": "1f0d1bac-dd71-43ac-b7cb-dc21c871e294",
+    "activeVersionId": null,
+    "versionCounter": 1,
+    "triggerCount": 0,
+    "sourceWorkflowId": null,
+    "tags": [],
+    "shared": [
+      {
+        "updatedAt": "2026-11-07T19:24:24.056Z",
+        "createdAt": "2026-11-07T19:24:24.056Z",
+        "role": "workflow:owner",
+        "workflowId": "39bRTVc0oQQDaNyA",
+        "projectId": "iepdvSTUwaW3eSoy",
+        "project": {
+          "updatedAt": "2026-11-07T18:58:01.911Z",
+          "createdAt": "2026-11-07T18:49:56.121Z",
+          "id": "iepdvSTUwaW3eSoy",
+          "name": "John McCarty <mccartyccm120@gmail.com>",
+          "type": "personal",
+          "icon": null,
+          "description": null,
+          "customTelemetryTags": [],
+          "creatorId": "82b61b08-7a3e-4c47-a306-8e5569d6a30b"
+        }
+      }
+    ],
+    "versionMetadata": {
+      "name": "Initial mock discovery",
+      "description": "Created with 8 nodes: Manual Trigger, Discovery Parameters, Mock Places Response, Normalize Prospect Data, Drop Invalid Records and 3 more"
+    }
+  }
+]
