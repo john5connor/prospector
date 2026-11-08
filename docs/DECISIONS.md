@@ -11,6 +11,7 @@
 | 7 | MVP persists Google Places fields (name, address, phone, website) in `prospects` | Decided, KNOWN RISK | Owner's call, 2026-11-07. Standard terms likely do not permit durable storage of these fields (see docs/research/places-terms-and-pricing.md). Revisit before any scale-up, export or outreach built on stored Google data. Pivot path: keep only `place_id` + own data, fetch fields fresh |
 | 8 | Discovery first, template later | Decided | Overrides spec §10 |
 | 9 | Provenance columns on `prospects` (source, source_record_id, source_url, collected_at); Overture Places piloted as primary discovery source candidate | Decided (columns) / Pilot only (Overture) | Migration 004. Overture rows are NOT imported yet: `prospects.place_id` is Google-specific and NOT NULL, so choosing the dedupe key for multi-source rows is an open decision. See docs/research/overture-pilot.md |
+| 10 | Multi-source dedupe: `prospects.id` is the stable prospect ID; `place_id` nullable; `prospect_sources` links source records (unique on source+record id, filled by trigger); generated `phone_norm`/`domain_norm` find match candidates; ambiguous matches go to `prospect_match_candidates` for human review, never auto-merged | Decided (migration 006 applied) | Overture rows not yet imported; matching logic not yet built |
 
 ## Open
 - Written clarification from Google on prospecting use / durable storage (unverified; needed before scaling).
