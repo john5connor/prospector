@@ -51,3 +51,17 @@ alert payloads.
 
 Related: when we add scheduling, alerts should also cover "ran but found nothing" (`no_results` /
 `no_valid_records`), since those complete successfully and would not trigger an error path.
+
+## Crawl helper (drafted, not wired in, crawling not enabled)
+`src/prospector/crawl.py` is the one shared fetch helper that docs/CRAWL_POLICY.md section 7 requires. It enforces
+the kill switch (`CRAWL_ENABLED`, re-read from `.env` on every request, fails closed), the bot identity (refuses
+while the contact URL/email are empty or TODO), the blocklist (checked before every request, matches subdomains),
+robots.txt, the section 4 limits, URL exclusions, and the 30-day re-audit interval. It also logs every request and
+refusal. Tables are in `db/migrations/010_crawl.sql` (applied locally 2026-11-08). Tests: `python3 -m unittest tests.test_crawl`
+(local stub server only, ~30 s); database store: `PROSPECTOR_DB_TESTS=1 python3 -m unittest tests.test_crawl_psql` (writes and then deletes `dbtest-*` rows).
+- Choices the policy doesn't spell out (owner to confirm): robots.txt answers other than 2xx/404/410 skip the site;
+  a Crawl-delay over 60 s skips the site; "same registrable domain" is approximated as the start host minus `www.`
+  plus its subdomains (stricter); hosts that resolve to private/non-public IPs are refused.
+- Not built: an n8n-callable wrapper (n8n audit nodes must call this helper, not prospect hosts), opt-out
+  deletion of stored findings, and Playwright request routing. `playwright_context_options()` only sets the
+  user agent; a rendered page also loads CSS/JS/images that robots.txt and the rate limits don't cover.
