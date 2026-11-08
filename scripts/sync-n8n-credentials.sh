@@ -15,6 +15,8 @@ creds = [
             "ssl": "disable", "allowUnauthorizedCerts": False, "maxConnections": 10}},
   {"id": "placesApiKey01", "name": "Google Places API Key", "type": "httpHeaderAuth",
    "data": {"name": "X-Goog-Api-Key", "value": key}},
+  {"id": "psiApiKey01", "name": "Google PageSpeed API Key", "type": "httpQueryAuth",
+   "data": {"name": "key", "value": key}},
 ]
 json.dump(creds, open(sys.argv[1], "w"))
 PY

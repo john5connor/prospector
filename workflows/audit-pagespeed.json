@@ -1,0 +1,209 @@
+[
+  {
+    "id": "pagespeedAudit01",
+    "name": "Audit: PageSpeed (mobile)",
+    "description": "Runs PageSpeed Insights (Google fetches the site) for Google-sourced prospects with a website and no ok audit in 30 days. Capped by batchSize and dailyLimit; stores scores, metrics and normalized findings.",
+    "active": false,
+    "nodes": [
+      {
+        "id": "a1",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "a2",
+        "name": "Audit Parameters",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "mode": "manual",
+          "includeOtherFields": false,
+          "assignments": {
+            "assignments": [
+              {
+                "id": "p1",
+                "name": "batchSize",
+                "value": 5,
+                "type": "number"
+              },
+              {
+                "id": "p2",
+                "name": "dailyLimit",
+                "value": 25,
+                "type": "number"
+              },
+              {
+                "id": "p3",
+                "name": "strategy",
+                "value": "mobile",
+                "type": "string"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "a3",
+        "name": "Select Prospects",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          440,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "prospectorPg01",
+            "name": "Prospector Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT id AS prospect_id, name, regexp_replace(website_url, '[?#].*$', '') AS url\nFROM prospects p\nWHERE website_url IS NOT NULL AND website_url <> ''\n  AND source = 'google_places'\n  AND NOT EXISTS (SELECT 1 FROM audit_runs a WHERE a.prospect_id = p.id AND a.kind = 'pagespeed' AND a.status = 'ok' AND a.ran_at > now() - interval '30 days')\nORDER BY id\nLIMIT GREATEST(0, LEAST($1::int, $2::int - (SELECT count(*) FROM audit_runs WHERE kind = 'pagespeed' AND ran_at >= date_trunc('day', now()))::int))",
+          "options": {
+            "queryReplacement": "={{ [$json.batchSize, $json.dailyLimit] }}"
+          }
+        }
+      },
+      {
+        "id": "a4",
+        "name": "PageSpeed Request",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          660,
+          0
+        ],
+        "onError": "continueRegularOutput",
+        "credentials": {
+          "httpQueryAuth": {
+            "id": "psiApiKey01",
+            "name": "Google PageSpeed API Key"
+          }
+        },
+        "parameters": {
+          "method": "GET",
+          "url": "={{ 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed?strategy=' + $('Audit Parameters').first().json.strategy + '&category=performance&category=seo&category=accessibility&category=best-practices&url=' + encodeURIComponent($json.url) }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpQueryAuth",
+          "options": {
+            "timeout": 120000,
+            "batching": {
+              "batch": {
+                "batchSize": 1,
+                "batchInterval": 3000
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "a5",
+        "name": "Build Audit Rows",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "jsCode": "// Turn each PageSpeed response (or error) into one audit row + normalized findings.\nconst prospects = $('Select Prospects').all();\nconst strategy = $('Audit Parameters').first().json.strategy;\nconst pct = v => (typeof v === 'number' ? Math.round(v * 100) : null);\nconst failed = (aud, id) => aud[id] && aud[id].score !== null && aud[id].score !== undefined && aud[id].score < 1;\nconst out = [];\n$input.all().forEach((it, i) => {\n  const pr = prospects[i].json;\n  const base = { prospect_id: pr.prospect_id, url: pr.url, strategy };\n  const body = it.json;\n  const lh = body && body.lighthouseResult;\n  if (!lh) {\n    const msg = (body && (body.error && (body.error.message || body.error))) || 'no lighthouseResult in response';\n    out.push({ json: { ...base, status: 'error', scores: null, metrics: null, error: String(typeof msg === 'string' ? msg : JSON.stringify(msg)).slice(0, 500), findings: [] } });\n    return;\n  }\n  const cat = lh.categories || {}, aud = lh.audits || {};\n  const scores = { performance: pct(cat.performance?.score), seo: pct(cat.seo?.score), accessibility: pct(cat.accessibility?.score), best_practices: pct(cat['best-practices']?.score) };\n  const metrics = { lcp_ms: Math.round(aud['largest-contentful-paint']?.numericValue ?? 0) || null, cls: aud['cumulative-layout-shift']?.numericValue ?? null, tbt_ms: Math.round(aud['total-blocking-time']?.numericValue ?? 0), fcp_ms: Math.round(aud['first-contentful-paint']?.numericValue ?? 0) || null };\n  const f = [];\n  const add = (check_name, severity, evidence, business_impact_text) => f.push({ check_name, severity, evidence, business_impact_text });\n  if (scores.performance !== null && scores.performance < 50) add('performance', 'high', `Mobile performance score ${scores.performance}/100; largest content takes ${(metrics.lcp_ms/1000).toFixed(1)}s`, 'On a phone, your site is slow to load, and many visitors leave before it finishes.');\n  else if (scores.performance !== null && scores.performance < 90) add('performance', 'medium', `Mobile performance score ${scores.performance}/100`, 'Your site is a little slow on phones, which costs you some visitors and hurts search ranking.');\n  if (failed(aud, 'viewport')) add('mobile-viewport', 'high', 'No mobile viewport meta tag', 'Your site is not set up for phone screens, so customers have to pinch and zoom to read it.');\n  if (failed(aud, 'is-on-https')) add('https', 'high', 'Page is not served over HTTPS', 'Browsers warn visitors that your site is \"Not secure\", which scares customers away.');\n  if (failed(aud, 'tap-targets')) add('tap-targets', 'medium', 'Buttons/links too small or too close together', 'On a phone, buttons and phone links are hard to tap, so customers give up before calling or booking.');\n  if (failed(aud, 'font-size')) add('font-size', 'medium', 'Text too small to read on mobile', 'Text is too small to read comfortably on a phone.');\n  if (failed(aud, 'document-title')) add('title', 'medium', 'Page has no <title>', 'Google has no title to show for your business in search results.');\n  if (failed(aud, 'meta-description')) add('meta-description', 'medium', 'No meta description', 'Search results show a random snippet instead of a message that gets people to call you.');\n  if (scores.accessibility !== null && scores.accessibility < 70) add('accessibility', 'low', `Accessibility score ${scores.accessibility}/100`, 'Some customers, including older ones, may struggle to use your site.');\n  if (scores.seo !== null && scores.seo < 80) add('seo', 'medium', `SEO score ${scores.seo}/100`, 'Basic search-engine setup is missing, making it harder for local customers to find you on Google.');\n  out.push({ json: { ...base, status: 'ok', scores, metrics, error: null, findings: f } });\n});\nreturn out;"
+        }
+      },
+      {
+        "id": "a6",
+        "name": "Persist Audit",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          1100,
+          0
+        ],
+        "credentials": {
+          "postgres": {
+            "id": "prospectorPg01",
+            "name": "Prospector Postgres"
+          }
+        },
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "WITH run AS (\n  INSERT INTO audit_runs (prospect_id, kind, strategy, url, status, scores, metrics, error, n8n_execution_id)\n  VALUES ($1::bigint, 'pagespeed', $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8)\n  RETURNING id\n), f AS (\n  INSERT INTO findings (audit_run_id, check_name, severity, evidence, business_impact_text)\n  SELECT run.id, x.check_name, x.severity, x.evidence, x.business_impact_text\n  FROM run, jsonb_to_recordset($9::jsonb) AS x(check_name text, severity text, evidence text, business_impact_text text)\n  RETURNING id\n)\nSELECT run.id AS audit_run_id, $1::bigint AS prospect_id, $4 AS status, (SELECT count(*) FROM f)::int AS findings FROM run",
+          "options": {
+            "queryReplacement": "={{ [$json.prospect_id, $json.strategy, $json.url, $json.status, JSON.stringify($json.scores), JSON.stringify($json.metrics), $json.error, $execution.id, JSON.stringify($json.findings)] }}"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "Audit Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Audit Parameters": {
+        "main": [
+          [
+            {
+              "node": "Select Prospects",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Select Prospects": {
+        "main": [
+          [
+            {
+              "node": "PageSpeed Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "PageSpeed Request": {
+        "main": [
+          [
+            {
+              "node": "Build Audit Rows",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Audit Rows": {
+        "main": [
+          [
+            {
+              "node": "Persist Audit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "availableInMCP": true
+    }
+  }
+]
