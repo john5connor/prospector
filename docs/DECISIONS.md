@@ -12,6 +12,7 @@
 | 8 | Discovery first, template later | Decided | Overrides spec §10 |
 | 9 | Provenance columns on `prospects` (source, source_record_id, source_url, collected_at); Overture Places piloted as primary discovery source candidate | Decided (columns) / Pilot only (Overture) | Migration 004. Overture rows are NOT imported yet: `prospects.place_id` is Google-specific and NOT NULL, so choosing the dedupe key for multi-source rows is an open decision. See docs/research/overture-pilot.md |
 | 10 | Multi-source dedupe: `prospects.id` is the stable prospect ID; `place_id` nullable; `prospect_sources` links source records (unique on source+record id, filled by trigger); generated `phone_norm`/`domain_norm` find match candidates; ambiguous matches go to `prospect_match_candidates` for human review, never auto-merged | Decided (migration 006 applied) | Overture rows not yet imported; matching logic not yet built |
+| 11 | Qualification v1 in SQL function `qualify_prospects()`: ability (reviews+rating, 0-35) + problem (no site / audit findings, 0-60); qualified = score>=50 AND ability>=15 AND problem>=8, mock rows excluded. Reports built locally by `scripts/build_report.py` (top 3 findings, noindex, unguessable token), not hosted | Proposed defaults, tune after reviewing more prospects | Thresholds untuned on 5 samples; hosting and sender identity pending domain |
 
 ## Open
 - Written clarification from Google on prospecting use / durable storage (unverified; needed before scaling).
