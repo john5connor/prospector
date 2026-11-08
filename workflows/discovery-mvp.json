@@ -72,6 +72,12 @@
                 "name": "pageSize",
                 "value": 20,
                 "type": "number"
+              },
+              {
+                "id": "mrl",
+                "name": "monthlyRequestLimit",
+                "value": 100,
+                "type": "number"
               }
             ]
           }
@@ -335,7 +341,7 @@
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.5,
         "position": [
-          660,
+          1100,
           -120
         ],
         "parameters": {
@@ -356,7 +362,7 @@
           "sendBody": true,
           "contentType": "json",
           "specifyBody": "json",
-          "jsonBody": "={{ JSON.stringify({ textQuery: $json.textQuery, pageSize: $json.pageSize }) }}",
+          "jsonBody": "={{ JSON.stringify({ textQuery: $('Discovery Parameters').first().json.textQuery, pageSize: $('Discovery Parameters').first().json.pageSize }) }}",
           "options": {
             "pagination": {
               "pagination": {
@@ -424,6 +430,74 @@
           "include": "noOtherFields"
         },
         "alwaysOutputData": true
+      },
+      {
+        "id": "3be5e0c6-6166-44be-b6a7-0ff0191d23f6",
+        "name": "Budget Guard",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.6,
+        "position": [
+          660,
+          -120
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "SELECT COALESCE(SUM(requests_made),0)::int AS used_this_month, $1::int AS monthly_limit, $2::int AS needed,\n  (COALESCE(SUM(requests_made),0) + $2::int <= $1::int) AS allowed\nFROM discovery_runs\nWHERE params->>'source' = 'places' AND billable AND started_at >= date_trunc('month', now())",
+          "options": {
+            "queryReplacement": "={{ [$('Discovery Parameters').first().json.monthlyRequestLimit, Math.min($('Discovery Parameters').first().json.maxPages, 3)] }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "prospectorPg01",
+            "name": "Prospector Postgres"
+          }
+        }
+      },
+      {
+        "id": "ca591a89-50d3-4eee-ae31-5120abd65a20",
+        "name": "Budget OK?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.4,
+        "position": [
+          880,
+          -120
+        ],
+        "parameters": {
+          "conditions": {
+            "combinator": "and",
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "strict",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "b1",
+                "leftValue": "={{ $json.allowed }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true",
+                  "singleValue": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "aedbf42b-b62c-48aa-b1ba-8f4ff23c0d50",
+        "name": "Stop: Monthly Budget Exceeded",
+        "type": "n8n-nodes-base.stopAndError",
+        "typeVersion": 1,
+        "position": [
+          1100,
+          40
+        ],
+        "parameters": {
+          "errorMessage": "={{ 'Places request budget exceeded: ' + $json.used_this_month + ' used of ' + $json.monthly_limit + ' this month, run needs up to ' + $json.needed }}"
+        }
       }
     ],
     "connections": {
@@ -508,7 +582,7 @@
         "main": [
           [
             {
-              "node": "Places Search",
+              "node": "Budget Guard",
               "type": "main",
               "index": 0
             }
@@ -549,6 +623,35 @@
           [
             {
               "node": "Normalize Prospect Data",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Budget Guard": {
+        "main": [
+          [
+            {
+              "node": "Budget OK?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Budget OK?": {
+        "main": [
+          [
+            {
+              "node": "Places Search",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Stop: Monthly Budget Exceeded",
               "type": "main",
               "index": 0
             }
