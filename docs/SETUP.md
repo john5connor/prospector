@@ -16,10 +16,14 @@ Back up `N8N_ENCRYPTION_KEY`: without it saved n8n credentials are unrecoverable
 The postgres init script runs only on a fresh volume.
 
 ## Database schema and credentials
+Schema is managed by Flyway (`migrate` service in `compose.yaml`). It runs automatically on `docker compose up`
+and applies any new `db/migrations/V<NNN>__<name>.sql` files in order, tracking them in `flyway_schema_history`.
+To add a change, create the next numbered file; never edit an applied one. Run by hand with
+`docker compose run --rm migrate` (or `... migrate info` for status).
+
+n8n credentials are not in Git. Create/refresh them from `.env` (stack must be running):
 ```bash
-set -a; . ./.env; set +a
-docker compose exec -T postgres psql -U $POSTGRES_USER -d $PROSPECTOR_DB -v ON_ERROR_STOP=1 < db/migrations/001_init.sql
+scripts/sync-n8n-credentials.sh
 ```
-n8n credentials are not in Git. The "Prospector Postgres" credential (id `prospectorPg01`) was created with
-`n8n import:credentials` from a temp file built from `.env` (host `postgres`, db `$PROSPECTOR_DB`), then deleted.
-Recreate it the same way, or via the n8n UI, on a fresh instance. Exported workflows reference it by id only.
+This builds the "Prospector Postgres" (id `prospectorPg01`), Google Places and PageSpeed credentials and imports
+them with `n8n import:credentials`. Exported workflows reference credentials by id only.

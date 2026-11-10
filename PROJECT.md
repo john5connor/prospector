@@ -57,7 +57,7 @@ Related: when we add scheduling, alerts should also cover "ran but found nothing
 the kill switch (`CRAWL_ENABLED`, re-read from `.env` on every request, fails closed), the bot identity (refuses
 while the contact URL/email are empty or TODO), the blocklist (checked before every request, matches subdomains),
 robots.txt, the section 4 limits, URL exclusions, and the 30-day re-audit interval. It also logs every request and
-refusal. Tables are in `db/migrations/010_crawl.sql` (applied locally 2026-11-08). Tests: `python3 -m unittest tests.test_crawl`
+refusal. Tables are in `db/migrations/V010__crawl.sql` (applied locally 2026-11-08). Tests: `python3 -m unittest tests.test_crawl`
 (local stub server only, ~30 s); database store: `PROSPECTOR_DB_TESTS=1 python3 -m unittest tests.test_crawl_psql` (writes and then deletes `dbtest-*` rows).
 - Choices the policy doesn't spell out (owner to confirm): robots.txt answers other than 2xx/404/410 skip the site;
   a Crawl-delay over 60 s skips the site; "same registrable domain" is approximated as the start host minus `www.`

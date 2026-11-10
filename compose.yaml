@@ -21,6 +21,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # One-shot schema migrations (Flyway). Runs on every `docker compose up`; already-applied versions are skipped.
+  # Existing databases with no history table are baselined at version 0, so the (idempotent) migrations re-run safely.
+  migrate:
+    image: flyway/flyway:11
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    command: migrate
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres:5432/${PROSPECTOR_DB}
+      FLYWAY_USER: ${POSTGRES_USER}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_BASELINE_VERSION: "0"
+    volumes:
+      - ./db/migrations:/flyway/sql:ro
+
   n8n:
     image: n8nio/n8n:2.47.2
     restart: unless-stopped

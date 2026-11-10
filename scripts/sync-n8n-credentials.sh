@@ -21,6 +21,7 @@ creds = [
 json.dump(creds, open(sys.argv[1], "w"))
 PY
 docker compose cp "$TMP" n8n:/tmp/creds.json
+docker compose exec -T -u root n8n chown node /tmp/creds.json
 docker compose exec -T -u node n8n n8n import:credentials --input=/tmp/creds.json
-docker compose exec -T n8n rm -f /tmp/creds.json
+docker compose exec -T -u root n8n rm -f /tmp/creds.json
 [ -n "${GOOGLE_PLACES_API_KEY:-}" ] || echo "NOTE: GOOGLE_PLACES_API_KEY is empty; Places credential holds a placeholder."

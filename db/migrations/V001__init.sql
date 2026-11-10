@@ -1,4 +1,4 @@
--- Prospect store. Applied manually for now (see docs/SETUP.md); a migration runner comes later.
+-- Prospect store. Applied by Flyway (see docs/SETUP.md).
 -- NOTE: columns beyond place_id are provisional until Google Places storage terms are verified.
 CREATE TABLE IF NOT EXISTS prospects (
   id               BIGSERIAL PRIMARY KEY,
